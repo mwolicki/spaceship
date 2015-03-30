@@ -145,7 +145,7 @@ The following code puts it all together and shows it on screen.
 ------------------------------------------------------------------------------}
 
 delta : Signal Float
-delta = Time.fps 10
+delta = Time.fps 25
 
 
 input : Signal Input
