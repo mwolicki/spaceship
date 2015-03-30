@@ -9,6 +9,8 @@ import Keyboard
 import Color(rgb)
 import Array(..)
 import List
+import Debug
+
 {-- Part 1: Model the user input ----------------------------------------------
 
 What information do you need to represent all relevant user input?
@@ -61,13 +63,14 @@ type alias LaserState = {x:Int, y:Int, yv:Int}
 
 type alias GameState = {
   lasers : List LaserState,
+  fireBanned: Int,
   x : Int,
   maxX : Int,
   move : MoveInstruction
 }
 
 defaultGame : GameState
-defaultGame = { x = 0, maxX =0, move = None, lasers = [] }
+defaultGame = { x = 0, maxX =0, move = None, fireBanned=0, lasers = [] }
 
 
 
@@ -88,10 +91,14 @@ moveShip {move} gameState =
                       _ -> gameState.x
   }
   
+  
 fireLaser: UserInput -> GameState -> GameState
-fireLaser {spacePressed} gameState =
-  if | spacePressed -> { gameState | lasers <- {x = gameState.x,y=0,yv=10}::gameState.lasers }
-     | True -> gameState
+fireLaser {spacePressed} gs =
+  if | (spacePressed && gs.fireBanned<=0) -> { gs | fireBanned <- 7,
+                                                    lasers <- {x = gs.x,y=0,yv=10}::gs.lasers }
+     | (gs.fireBanned>0) -> { gs | fireBanned <- gs.fireBanned - 1 }
+                                           
+     | True -> gs
 
 moveLaser: GameState -> GameState
 moveLaser gs = 
@@ -101,7 +108,7 @@ moveLaser gs =
 
 stepGame : Input -> GameState -> GameState
 stepGame {timeDelta,userInput} gameState =
-    fireLaser userInput gameState |> moveLaser |> moveShip userInput
+    fireLaser userInput gameState |> moveLaser |> moveShip userInput |> Debug.watch "gameState"
 
 
 
@@ -118,15 +125,14 @@ display (w,h) gameState =
     let x = (toFloat(w)/2.0) in
     let y = (toFloat(h)/2.0) in
     let list = [  
-     fittedImage h w "http://www.wallpaperup.com/uploads/wallpapers/2013/09/07/144250/ef1af6269f1d39ee1dcf222fcfcb5bc0.jpg" 
+     fittedImage h w "img/galaxy.png" 
        |> toForm 
-       |> rotate (degrees 90)
-       |> alpha 0.90,
-     image 50 50 "http://opengameart.org/sites/default/files/DurrrSpaceShip.png" 
+       |> rotate (degrees 90),
+     image 100 100 "img/destroyer.png" 
        |> toForm 
        |> move (gameState.x |> toFloat,-y + 35)] in
      let lasers = List.map(\l -> 
-       rect 5.0 30.0 |> filled (rgb 0 255 0) |> move (toFloat l.x, -y + 35 + (toFloat l.y))) gameState.lasers in
+       rect 5.0 15.0 |> filled (rgb 0 255 0) |> move (toFloat l.x, -y + 35 + (toFloat l.y))) gameState.lasers in
       collage w h (List.append list lasers)
    
 
@@ -139,11 +145,11 @@ The following code puts it all together and shows it on screen.
 ------------------------------------------------------------------------------}
 
 delta : Signal Float
-delta = Time.fps 25
+delta = Time.fps 10
 
 
 input : Signal Input
-input = Signal.sampleOn delta (Signal.map2 Input delta userInput)
+input = Debug.watch "arrows" <~Signal.sampleOn delta (Signal.map2 Input delta userInput)
 
 
 gameState : Signal GameState
