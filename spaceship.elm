@@ -61,13 +61,14 @@ type alias LaserState = {x:Int, y:Int, yv:Int}
 
 type alias GameState = {
   lasers : List LaserState,
+  fireBanned: Int,
   x : Int,
   maxX : Int,
   move : MoveInstruction
 }
 
 defaultGame : GameState
-defaultGame = { x = 0, maxX =0, move = None, lasers = [] }
+defaultGame = { x = 0, maxX =0, move = None, fireBanned=0, lasers = [] }
 
 
 
@@ -88,10 +89,14 @@ moveShip {move} gameState =
                       _ -> gameState.x
   }
   
+  
 fireLaser: UserInput -> GameState -> GameState
-fireLaser {spacePressed} gameState =
-  if | spacePressed -> { gameState | lasers <- {x = gameState.x,y=0,yv=10}::gameState.lasers }
-     | True -> gameState
+fireLaser {spacePressed} gs =
+  if | (spacePressed && gs.fireBanned<=0) -> { gs | fireBanned <- 5,
+                                                    lasers <- {x = gs.x,y=0,yv=10}::gs.lasers }
+     | (gs.fireBanned>0) -> { gs | fireBanned <- gs.fireBanned - 1 }
+                                           
+     | True -> gs
 
 moveLaser: GameState -> GameState
 moveLaser gs = 
@@ -126,7 +131,7 @@ display (w,h) gameState =
        |> toForm 
        |> move (gameState.x |> toFloat,-y + 35)] in
      let lasers = List.map(\l -> 
-       rect 5.0 30.0 |> filled (rgb 0 255 0) |> move (toFloat l.x, -y + 35 + (toFloat l.y))) gameState.lasers in
+       rect 5.0 10.0 |> filled (rgb 0 255 0) |> move (toFloat l.x, -y + 35 + (toFloat l.y))) gameState.lasers in
       collage w h (List.append list lasers)
    
 
@@ -139,7 +144,7 @@ The following code puts it all together and shows it on screen.
 ------------------------------------------------------------------------------}
 
 delta : Signal Float
-delta = Time.fps 25
+delta = Time.fps 30
 
 
 input : Signal Input
