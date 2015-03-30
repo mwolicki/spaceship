@@ -95,7 +95,7 @@ moveShip {move} gameState =
 fireLaser: UserInput -> GameState -> GameState
 fireLaser {spacePressed} gs =
   if | (spacePressed && gs.fireBanned<=0) -> { gs | fireBanned <- 7,
-                                                    lasers <- {x = gs.x,y=0,yv=10}::gs.lasers }
+                                                    lasers <- {x = gs.x,y=0,yv=7}::gs.lasers }
      | (gs.fireBanned>0) -> { gs | fireBanned <- gs.fireBanned - 1 }
                                            
      | True -> gs
@@ -103,7 +103,7 @@ fireLaser {spacePressed} gs =
 moveLaser: GameState -> GameState
 moveLaser gs = 
   if |((List.length gs.lasers) == 0) -> gs
-     | True ->  { gs | lasers <- gs.lasers |> List.map (\l -> {l | y<- l.y + l.yv}) |> List.filter (\l -> l.y<700) }
+     | True ->  { gs | lasers <- gs.lasers |> List.map (\l -> {l | y<- l.y + l.yv}) |> List.filter (\l -> l.y<900) }
 
 
 stepGame : Input -> GameState -> GameState
@@ -125,18 +125,18 @@ display (w,h) gameState =
     let x = (toFloat(w)/2.0) in
     let y = (toFloat(h)/2.0) in
     let list = [  
-     fittedImage h w "img/galaxy.png" 
-       |> toForm 
-       |> rotate (degrees 90),
+     fittedImage w h "img/galaxy.png" 
+       |> toForm,
      image 100 100 "img/destroyer.png" 
        |> toForm 
-       |> move (gameState.x |> toFloat,-y + 35)] in
+       |> move (gameState.x |> toFloat,-y + 35),
+     image 50 75 "img/shuttlenoweps.png" 
+       |> toForm 
+       |> move (gameState.x |> toFloat, y - 35)] in
      let lasers = List.map(\l -> 
-       rect 5.0 15.0 |> filled (rgb 0 255 0) |> move (toFloat l.x, -y + 35 + (toFloat l.y))) gameState.lasers in
+       rect 5.0 15.0 |> filled (rgb 0 255 0) |> move (toFloat l.x, -y + 50 + (toFloat l.y))) gameState.lasers in
       collage w h (List.append list lasers)
    
-
-
 
 {-- That's all folks! ---------------------------------------------------------
 
