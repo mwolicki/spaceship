@@ -9,6 +9,7 @@ import Keyboard
 import Color(rgb)
 import Array(..)
 import List
+import Random
 import Debug
 
 {-- Part 1: Model the user input ----------------------------------------------
@@ -61,8 +62,12 @@ be an empty list (no objects at the start):
 
 type alias LaserState = {x:Int, y:Int, yv:Int}
 
+type alias AsteroidState = {x:Int, y:Int, yv:Int}
+
+
 type alias GameState = {
   lasers : List LaserState,
+  asteroids : List AsteroidState,
   fireBanned: Int,
   x : Int,
   maxX : Int,
@@ -70,7 +75,7 @@ type alias GameState = {
 }
 
 defaultGame : GameState
-defaultGame = { x = 0, maxX =0, move = None, fireBanned=0, lasers = [] }
+defaultGame = { x = 0, maxX =0, move = None, fireBanned=0, lasers = [], asteroids = [] }
 
 
 
@@ -105,10 +110,12 @@ moveLaser gs =
   if |((List.length gs.lasers) == 0) -> gs
      | True ->  { gs | lasers <- gs.lasers |> List.map (\l -> {l | y<- l.y + l.yv}) |> List.filter (\l -> l.y<900) }
 
+putRandomAsteroid gs =
 
 stepGame : Input -> GameState -> GameState
 stepGame {timeDelta,userInput} gameState =
-    fireLaser userInput gameState |> moveLaser |> moveShip userInput |> Debug.watch "gameState"
+    fireLaser userInput gameState |> moveLaser |> moveShip userInput 
+    |> Debug.watch "gameState"
 
 
 
@@ -130,7 +137,7 @@ display (w,h) gameState =
      image 100 100 "img/destroyer.png" 
        |> toForm 
        |> move (gameState.x |> toFloat,-y + 35),
-     image 50 75 "img/shuttlenoweps.png" 
+     image 120 120 "img/asteroids/medium/a10000.png" 
        |> toForm 
        |> move (gameState.x |> toFloat, y - 35)] in
      let lasers = List.map(\l -> 
