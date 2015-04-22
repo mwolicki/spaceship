@@ -113,26 +113,31 @@ moveLaser gs =
      | True ->  { gs | lasers <- gs.lasers |> List.map (\l -> {l | y<- l.y + l.yv}) |> List.filter (\l -> l.y<900) }
 
 detectLaserAsteroidColision gs =
-  let removeCollidedElements asteroids lasers stillAliveLasers =
-      let removeCollidedlements' laser asteroids alive =
-        case asteroids of
-          asteroid::tail -> if asteroid.y < laser.y then (True, (alive @ tail))
-                            else removeCollidedlements' laser tail (asteroid::alive)
-          [] -> (False, alive) in
-      case lasers of 
-        laser::tail ->   let (hit, aliveAsteroids) = (removeCollidedlements' laser asteroids []) in
-                           if hit then (aliveAsteroids, stillAliveLasers)
-                           else (aliveAsteroids, laser::stillAliveLasers)
-        [] -> (asteroids, stillAliveLasers) 
-  in
-   let (asteroids, lasers) = removeCollidedElements gs.asteroids gs.lasers [] in
-      {gs | asteroids <- asteroids, lasers <- lasers}
+  let removeCollidedElements asteroids lasers =
+      let removeCollidedElements' asteroids lasers aliveLasers = 
+        let removeCollidedAsteroids asteroids laser alivedAsteroids =
+          case asteroids of
+            asteroid::tail -> if asteroid.y < laser.y then (True, alivedAsteroids @ tail)
+                              else removeCollidedAsteroids tail laser (asteroid :: alivedAsteroids)
+            [] -> (False,alivedAsteroids)
+        in
+          case lasers of
+            laser::tail -> let (hit, alivedAsteroids) = removeCollidedAsteroids asteroids laser [] in
+                           let alivedLasers = (if hit then aliveLasers else (laser::aliveLasers)) in
+                           removeCollidedElements' alivedAsteroids tail alivedLasers
+            [] -> (asteroids, aliveLasers)
+      in
+        removeCollidedElements' asteroids lasers []
+    in
+      let (asteroids, lasers) = removeCollidedElements gs.asteroids gs.lasers in
+        { gs | asteroids <- asteroids, lasers <-lasers }
 
 --putRandomAsteroid gs =
 
 stepGame : Input -> GameState -> GameState
 stepGame {timeDelta,userInput} gameState =
-    fireLaser userInput gameState |> moveLaser |> moveShip userInput |> detectLaserAsteroidColision
+    fireLaser userInput gameState |> moveLaser |> moveShip userInput 
+    |> detectLaserAsteroidColision
     |> Debug.watch "gameState"
 
 
