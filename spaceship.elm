@@ -75,7 +75,7 @@ type alias GameState = {
 }
 
 defaultGame : GameState
-defaultGame = { x = 0, maxX =0, move = None, fireBanned=0, lasers = [], asteroids = [] }
+defaultGame = { x = 0, maxX =0, move = None, fireBanned=0, lasers = [], asteroids = [{x=0,y=800, yv=0}] }
 
 
 
@@ -100,21 +100,39 @@ moveShip {move} gameState =
 fireLaser: UserInput -> GameState -> GameState
 fireLaser {spacePressed} gs =
   if | (spacePressed && gs.fireBanned<=0) -> { gs | fireBanned <- 7,
-                                                    lasers <- {x = gs.x,y=0,yv=7}::gs.lasers }
-     | (gs.fireBanned>0) -> { gs | fireBanned <- gs.fireBanned - 1 }
-                                           
+                                                    lasers <- {x = gs.x,y=0,yv=27}::gs.lasers }
+     | (gs.fireBanned>0) -> { gs | fireBanned <- gs.fireBanned - 1 }                                           
      | True -> gs
+
+
+(@) = List.append
 
 moveLaser: GameState -> GameState
 moveLaser gs = 
-  if |((List.length gs.lasers) == 0) -> gs
+  if |(List.length gs.lasers) == 0 -> gs
      | True ->  { gs | lasers <- gs.lasers |> List.map (\l -> {l | y<- l.y + l.yv}) |> List.filter (\l -> l.y<900) }
 
-putRandomAsteroid gs =
+detectLaserAsteroidColision gs =
+  let removeCollidedElements asteroids lasers stillAliveLasers =
+      let removeCollidedlements' laser asteroids alive =
+        case asteroids of
+          asteroid::tail -> if asteroid.y < laser.y then (True, (alive @ tail))
+                            else removeCollidedlements' laser tail (asteroid::alive)
+          [] -> (False, alive) in
+      case lasers of 
+        laser::tail ->   let (hit, aliveAsteroids) = (removeCollidedlements' laser asteroids []) in
+                           if hit then (aliveAsteroids, stillAliveLasers)
+                           else (aliveAsteroids, laser::stillAliveLasers)
+        [] -> (asteroids, stillAliveLasers) 
+  in
+   let (asteroids, lasers) = removeCollidedElements gs.asteroids gs.lasers [] in
+      {gs | asteroids <- asteroids, lasers <- lasers}
+
+--putRandomAsteroid gs =
 
 stepGame : Input -> GameState -> GameState
 stepGame {timeDelta,userInput} gameState =
-    fireLaser userInput gameState |> moveLaser |> moveShip userInput 
+    fireLaser userInput gameState |> moveLaser |> moveShip userInput |> detectLaserAsteroidColision
     |> Debug.watch "gameState"
 
 
@@ -127,6 +145,7 @@ Task: redefine `display` to use the GameState you defined in part 2.
 
 ------------------------------------------------------------------------------}
 
+
 display : (Int,Int) -> GameState -> Element
 display (w,h) gameState =
     let x = (toFloat(w)/2.0) in
@@ -136,13 +155,14 @@ display (w,h) gameState =
        |> toForm,
      image 100 100 "img/destroyer.png" 
        |> toForm 
-       |> move (gameState.x |> toFloat,-y + 35),
-     image 120 120 "img/asteroids/medium/a10000.png" 
-       |> toForm 
-       |> move (gameState.x |> toFloat, y - 35)] in
+       |> move (gameState.x |> toFloat,-y + 35)] in
      let lasers = List.map(\l -> 
        rect 5.0 15.0 |> filled (rgb 0 255 0) |> move (toFloat l.x, -y + 50 + (toFloat l.y))) gameState.lasers in
-      collage w h (List.append list lasers)
+     let asteroids = List.map(\l -> 
+       image 120 120 "img/asteroids/medium/a10000.png" 
+       |> toForm 
+       |> move (toFloat l.x, -y + 50 + (toFloat l.y))) gameState.asteroids in
+      collage w h  (list @ lasers @ asteroids)
    
 
 {-- That's all folks! ---------------------------------------------------------
@@ -152,7 +172,7 @@ The following code puts it all together and shows it on screen.
 ------------------------------------------------------------------------------}
 
 delta : Signal Float
-delta = Time.fps 25
+delta = Time.fps 15
 
 
 input : Signal Input
