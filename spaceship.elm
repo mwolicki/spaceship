@@ -30,9 +30,9 @@ type alias UserInput = {
 
 
 keyboardInput = (\{x,y}->case x of 
-                           1 -> Left
-                           (-1) -> Right
-                           _ -> None) <~ Keyboard.arrows 
+                          1 -> Left
+                          -1 -> Right
+                          _ -> None) <~ Keyboard.arrows 
                                         
                                         
 
